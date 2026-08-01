@@ -1,46 +1,133 @@
 import io
+from pathlib import Path
 
 import torch
 import torch.nn as nn
-from PIL import Image
-from torchvision import models, transforms
+import torch.nn.functional as F
+from PIL import Image, ImageOps, UnidentifiedImageError
+from transformers import AutoImageProcessor, AutoModel
 
 
-class VibeEncoder(nn.Module):
+class ProjectionHead(nn.Module):
+    """Exact Option 2 architecture used by the training notebook."""
 
-    def __init__(self, device: torch.device) -> None:
+    def __init__(
+        self,
+        input_dim: int = 768,
+        hidden_dim: int = 512,
+        output_dim: int = 128,
+    ) -> None:
         super().__init__()
-        self.backbone = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
-        self.backbone.fc = nn.Identity()
-        self.device = device
-        self.to(self.device).eval()
-
-        self.pipeline = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
+        self.network = nn.Sequential(
+            nn.LayerNorm(input_dim),
+            nn.Linear(input_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(0.10),
+            nn.Linear(hidden_dim, output_dim),
         )
 
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        return F.normalize(self.network(features), dim=1)
+
+
+def select_device(requested: str) -> torch.device:
+    if requested == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(requested)
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("DEVICE requests CUDA, but CUDA is unavailable")
+    return device
+
+
+class Option2Encoder:
+    """Frozen DINOv2 CLS encoder followed by the trained SupCon head."""
+
+    def __init__(
+        self,
+        checkpoint_path: Path,
+        backbone_name: str,
+        requested_device: str,
+        image_size: int = 224,
+    ) -> None:
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"Option 2 checkpoint not found: {checkpoint_path}"
+            )
+
+        self.device = select_device(requested_device)
+        self.image_size = image_size
+        checkpoint = torch.load(
+            checkpoint_path,
+            map_location="cpu",
+            weights_only=False,
+        )
+
+        required = {
+            "projection_head_state",
+            "fingerprint",
+            "input_dim",
+            "hidden_dim",
+            "output_dim",
+            "best_epoch",
+            "best_validation",
+        }
+        missing = required - set(checkpoint)
+        if missing:
+            raise ValueError(
+                f"Option 2 checkpoint is missing: {sorted(missing)}"
+            )
+
+        self.fingerprint = dict(checkpoint["fingerprint"])
+        self.output_dim = int(checkpoint["output_dim"])
+        self.best_epoch = int(checkpoint["best_epoch"])
+        self.best_validation = dict(checkpoint["best_validation"])
+        if self.best_epoch != int(self.best_validation["epoch"]):
+            raise ValueError(
+                "Checkpoint best_epoch does not match best_validation epoch"
+            )
+
+        self.projection = ProjectionHead(
+            input_dim=int(checkpoint["input_dim"]),
+            hidden_dim=int(checkpoint["hidden_dim"]),
+            output_dim=self.output_dim,
+        )
+        self.projection.load_state_dict(
+            checkpoint["projection_head_state"],
+            strict=True,
+        )
+        self.projection.to(self.device).eval()
+
+        # Match the notebook call exactly so preprocessing cannot drift.
+        self.processor = AutoImageProcessor.from_pretrained(backbone_name)
+        self.backbone = AutoModel.from_pretrained(backbone_name)
+        self.backbone.to(self.device).eval()
+        for parameter in self.backbone.parameters():
+            parameter.requires_grad = False
+
     @torch.inference_mode()
-    def compute_global_descriptor(self, image_bytes: bytes) -> torch.Tensor | None:
-        """Mean-pooled embedding via 224x224 patch tesselation."""
+    def encode(self, image_bytes: bytes) -> torch.Tensor:
         try:
-            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            width, height = img.size
-            patches: list[torch.Tensor] = []
+            image = Image.open(io.BytesIO(image_bytes))
+            image = ImageOps.exif_transpose(image).convert("RGB")
+        except (UnidentifiedImageError, OSError) as exc:
+            raise ValueError("Uploaded file is not a readable image") from exc
 
-            for y in range(0, height - 224 + 1, 224):
-                for x in range(0, width - 224 + 1, 224):
-                    bounding_box = (x, y, x + 224, y + 224)
-                    patches.append(self.pipeline(img.crop(bounding_box)))
+        pixels = self.processor(
+            images=image,
+            return_tensors="pt",
+            size={"height": self.image_size, "width": self.image_size},
+        )["pixel_values"]
 
-            if not patches:
-                resized = img.resize((224, 224))
-                patches.append(self.pipeline(resized))
+        if tuple(pixels.shape[-2:]) != (
+            self.image_size,
+            self.image_size,
+        ):
+            raise RuntimeError(
+                f"Unexpected processor output: {tuple(pixels.shape)}"
+            )
 
-            batch_tensor = torch.stack(patches).to(self.device)
-            local_features = self.backbone(batch_tensor)
-            return torch.mean(local_features, dim=0)
-        except Exception:
-            return None
+        hidden = self.backbone(
+            pixel_values=pixels.to(self.device)
+        ).last_hidden_state
+        cls_features = hidden[:, 0].float()
+        return self.projection(cls_features).cpu()

@@ -1,0 +1,35 @@
+{
+  "shared": {
+    "dataset_name": "development_21",
+    "canonical_metadata_path": "OSV5M_European_Cities.xlsx",
+    "data_root_override": null,
+    "development_mode": true,
+    "seed": 0,
+    "min_images_per_city": 150,
+    "cell_km": 1.0,
+    "support_frac": 0.7,
+    "validation_frac": 0.15,
+    "backbone_name": "facebook/dinov2-base",
+    "image_size": 224,
+    "patch_grid": 7,
+    "dino_batch_size": 64,
+    "num_workers": 4,
+    "prototypes_per_city": 4,
+    "cap_support_per_city": 300,
+    "qualitative_queries": 20,
+    "shared_dir": "/tf/GeoVision_Clean_v2/shared_outputs",
+    "cache_dir": "/tf/GeoVision_Clean_v2/shared_outputs/feature_cache"
+  },
+  "training": {
+    "input_dim": 768,
+    "hidden_dim": 512,
+    "output_dim": 128,
+    "temperature": 0.1,
+    "cities_per_batch": 8,
+    "images_per_city": 4,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.0001,
+    "max_epochs": 30,
+    "patience": 6
+  }
+}

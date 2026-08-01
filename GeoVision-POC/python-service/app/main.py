@@ -4,28 +4,51 @@ from typing import Annotated
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app.config import settings
-from app.predict import load_model, predict
-from app.schemas import PredictResponse
+from app.predict import GeoVisionRuntime, load_runtime, predict
+from app.schemas import HealthResponse, ModelInfo, PredictResponse
 
-_encoder = None
-_centroids = None
-_cities_df = None
-_device = None
+_runtime: GeoVisionRuntime | None = None
+
+
+def get_runtime() -> GeoVisionRuntime:
+    if _runtime is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model service is not ready",
+        )
+    return _runtime
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global _encoder, _centroids, _cities_df, _device
-    _encoder, _centroids, _cities_df, _device = load_model(settings)
+    global _runtime
+    _runtime = load_runtime(settings)
     yield
+    _runtime = None
 
 
-app = FastAPI(title="GeoVision Model Service", lifespan=lifespan)
+app = FastAPI(
+    title="GeoVision Option 2 Model Service",
+    version="2.0.0",
+    lifespan=lifespan,
+)
 
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+@app.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    runtime = get_runtime()
+    info = runtime.model_info
+    return HealthResponse(
+        status="ok",
+        model=info.model,
+        city_count=info.city_count,
+        fingerprint=info.fingerprint,
+    )
+
+
+@app.get("/model-info", response_model=ModelInfo)
+def model_info() -> ModelInfo:
+    return get_runtime().model_info
 
 
 @app.post("/predict", response_model=PredictResponse)
@@ -33,24 +56,33 @@ async def predict_endpoint(
     image: Annotated[UploadFile, File(description="Image to analyze")],
 ) -> PredictResponse:
     if not image.content_type or not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file must be an image",
+        )
 
-    image_bytes = await image.read()
+    maximum = settings.max_upload_mb * 1024 * 1024
+    image_bytes = await image.read(maximum + 1)
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Empty image file")
+    if len(image_bytes) > maximum:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Image exceeds {settings.max_upload_mb} MB",
+        )
 
     try:
         results = predict(
             image_bytes=image_bytes,
-            model=_encoder,
-            centroids=_centroids,
-            cities_df=_cities_df,
-            device=_device,
+            runtime=get_runtime(),
             top_k=settings.top_k,
         )
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Inference failed: {exc}") from exc
+        raise HTTPException(
+            status_code=500,
+            detail="Inference failed",
+        ) from exc
 
     return PredictResponse(results=results)

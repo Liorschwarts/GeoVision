@@ -15,8 +15,11 @@ export const AnalysisScreen = ({ file, onComplete, onError }: Props) => {
   const progress = useFakeProgress()
   const onCompleteRef = useRef(onComplete)
   const onErrorRef = useRef(onError)
-  onCompleteRef.current = onComplete
-  onErrorRef.current = onError
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+    onErrorRef.current = onError
+  }, [onComplete, onError])
 
   useEffect(() => {
     const reader = new FileReader()
