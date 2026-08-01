@@ -4,13 +4,24 @@ import csv
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 
-from app.config import Settings
-from app.model import Option2Encoder
 from app.prototype_index import PrototypeIndex
 from app.schemas import CityResult, ModelInfo
+
+if TYPE_CHECKING:
+    from app.config import Settings
+
+
+class Encoder(Protocol):
+    fingerprint: dict
+    output_dim: int
+    best_epoch: int
+    device: object
+
+    def encode(self, image_bytes: bytes) -> np.ndarray: ...
 
 
 @dataclass(frozen=True)
@@ -22,7 +33,7 @@ class CityMetadata:
 
 @dataclass(frozen=True)
 class GeoVisionRuntime:
-    encoder: Option2Encoder
+    encoder: Encoder
     index: PrototypeIndex
     cities: dict[str, CityMetadata]
     model_name: str
@@ -79,6 +90,9 @@ def load_city_metadata(path: Path) -> dict[str, CityMetadata]:
 
 
 def load_runtime(settings: Settings) -> GeoVisionRuntime:
+    # Keep torch/transformers isolated from pure ranking and contract tests.
+    from app.model import Option2Encoder
+
     training_config = load_training_config(settings.training_config_path)
     shared_config = training_config["shared"]
     model_config = training_config["training"]
@@ -136,7 +150,7 @@ def predict(
     runtime: GeoVisionRuntime,
     top_k: int,
 ) -> list[CityResult]:
-    embedding = runtime.encoder.encode(image_bytes).numpy()
+    embedding = runtime.encoder.encode(image_bytes)
     scores = runtime.index.city_scores(embedding)[0]
     count = min(top_k, len(runtime.index.city_names))
     order = np.argsort(-scores, kind="stable")[:count]

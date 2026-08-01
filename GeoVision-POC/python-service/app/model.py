@@ -1,6 +1,7 @@
 import io
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -80,8 +81,8 @@ class Option2Encoder:
         self.fingerprint = dict(checkpoint["fingerprint"])
         self.output_dim = int(checkpoint["output_dim"])
         self.best_epoch = int(checkpoint["best_epoch"])
-        self.best_validation = dict(checkpoint["best_validation"])
-        if self.best_epoch != int(self.best_validation["epoch"]):
+        best_validation = dict(checkpoint["best_validation"])
+        if self.best_epoch != int(best_validation["epoch"]):
             raise ValueError(
                 "Checkpoint best_epoch does not match best_validation epoch"
             )
@@ -105,7 +106,7 @@ class Option2Encoder:
             parameter.requires_grad = False
 
     @torch.inference_mode()
-    def encode(self, image_bytes: bytes) -> torch.Tensor:
+    def encode(self, image_bytes: bytes) -> np.ndarray:
         try:
             image = Image.open(io.BytesIO(image_bytes))
             image = ImageOps.exif_transpose(image).convert("RGB")
@@ -130,4 +131,4 @@ class Option2Encoder:
             pixel_values=pixels.to(self.device)
         ).last_hidden_state
         cls_features = hidden[:, 0].float()
-        return self.projection(cls_features).cpu()
+        return self.projection(cls_features).cpu().numpy()
