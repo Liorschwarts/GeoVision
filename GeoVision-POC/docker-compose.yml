@@ -19,6 +19,14 @@ services:
     build: ./python-service
     ports:
       - "8000:8000"
+    environment:
+      MODEL_DIR: models/dinov2_supcon/final
+      DEVICE: auto
+      TOP_K: 5
+      MAX_UPLOAD_MB: 10
     volumes:
-      - ./python-service/models:/app/models
-      - ./python-service/data:/app/data
+      - ./python-service/models:/app/models:ro
+      - huggingface-cache:/root/.cache/huggingface
+
+volumes:
+  huggingface-cache:
