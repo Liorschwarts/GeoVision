@@ -3,7 +3,7 @@ import { CityCard } from '../components/CityCard'
 
 interface Props {
   results: CityResult[]
-  imageUrl: string
+  imageUrl?: string
   onBack: () => void
 }
 
@@ -17,7 +17,7 @@ export const ResultsScreen = ({ results, imageUrl, onBack }: Props) => (
       >
         <BackIcon />
       </button>
-      <img src={imageUrl} alt="Uploaded" className="w-8 h-8 rounded-lg object-cover" />
+      {imageUrl && <img src={imageUrl} alt="Uploaded" className="w-8 h-8 rounded-lg object-cover" />}
       <span className="text-sm font-semibold text-gray-700">
         {results.length} visually similar cities found
       </span>

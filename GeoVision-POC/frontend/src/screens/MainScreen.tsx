@@ -2,11 +2,13 @@ import { useImagePicker } from '../hooks/useImagePicker'
 
 interface Props {
   error?: string
+  email: string
+  onSignOut: () => Promise<unknown>
   onFilePicked: (file: File) => void
   onViewHistory: () => void
 }
 
-export const MainScreen = ({ error, onFilePicked, onViewHistory }: Props) => {
+export const MainScreen = ({ error, email, onSignOut, onFilePicked, onViewHistory }: Props) => {
   const { fileInputRef, cameraInputRef, triggerFilePicker, triggerCamera, onFileChange } =
     useImagePicker(onFilePicked)
 
@@ -50,6 +52,13 @@ export const MainScreen = ({ error, onFilePicked, onViewHistory }: Props) => {
           {error}
         </p>
       )}
+
+      <div className="text-center text-xs text-white/70">
+        <p>{email}</p>
+        <button onClick={() => void onSignOut()} className="mt-1 underline cursor-pointer">
+          Sign out
+        </button>
+      </div>
 
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
