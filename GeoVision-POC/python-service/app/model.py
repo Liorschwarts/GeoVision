@@ -10,7 +10,7 @@ from transformers import AutoImageProcessor, AutoModel
 
 
 class ProjectionHead(nn.Module):
-    """Exact Option 2 architecture used by the training notebook."""
+    """Projection architecture used by the DINOv2 + SupCon model."""
 
     def __init__(
         self,
@@ -40,7 +40,7 @@ def select_device(requested: str) -> torch.device:
     return device
 
 
-class Option2Encoder:
+class DinoV2SupConEncoder:
     """Frozen DINOv2 CLS encoder followed by the trained SupCon head."""
 
     def __init__(
@@ -52,7 +52,7 @@ class Option2Encoder:
     ) -> None:
         if not checkpoint_path.exists():
             raise FileNotFoundError(
-                f"Option 2 checkpoint not found: {checkpoint_path}"
+                f"DINOv2 + SupCon checkpoint not found: {checkpoint_path}"
             )
 
         self.device = select_device(requested_device)
@@ -75,7 +75,8 @@ class Option2Encoder:
         missing = required - set(checkpoint)
         if missing:
             raise ValueError(
-                f"Option 2 checkpoint is missing: {sorted(missing)}"
+                "DINOv2 + SupCon checkpoint is missing: "
+                f"{sorted(missing)}"
             )
 
         self.fingerprint = dict(checkpoint["fingerprint"])

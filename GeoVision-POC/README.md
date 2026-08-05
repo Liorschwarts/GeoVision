@@ -1,6 +1,6 @@
-# GeoVision POC
+# GeoVision
 
-The POC connects the React interface to the approved GeoVision Option 2 model:
+GeoVision connects the React interface to the selected DINOv2 + SupCon model:
 
 ```text
 React -> Express /api/analyze -> FastAPI /predict
@@ -13,17 +13,16 @@ history remains local to the frontend.
 
 ## Model bundle
 
-`python-service/models/option2/` is a replaceable bundle:
+`python-service/models/dinov2_supcon/final/` contains the deployed bundle:
 
 - `checkpoint.pth` — trained 768→512→128 projection head.
-- `prototype_index.npz` — four prototypes per city plus the dataset fingerprint.
+- `prototype_index.npz` — four prototypes per city and the training fingerprint.
 - `config.json` — backbone and training configuration.
-- `cities.csv` — country and map coordinates for every indexed city.
+- `cities.csv` — country and map coordinates for all 39 indexed cities.
 
 The service refuses to start if checkpoint epochs, fingerprints, dimensions, or
-city names disagree. The current bundle is the verified 21-city development
-run. After the final 40-city run, replace all four files together; the frontend
-and API do not change.
+city names disagree. Prototype similarities are aggregated into one score per
+city before the API returns the five highest-scoring distinct cities.
 
 ## Run with Docker
 
@@ -43,7 +42,7 @@ Useful endpoints:
 - `POST http://localhost:3001/api/analyze` with multipart field `image`
 
 The displayed score is non-negative cosine similarity multiplied by 100. It is
-a similarity score, not a calibrated probability or confidence estimate.
+a visual similarity score, not a calibrated probability or confidence estimate.
 
 ## Run services without Docker
 

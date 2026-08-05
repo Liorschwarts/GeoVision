@@ -2,7 +2,6 @@ export interface CityResult {
   city: string
   country: string
   score: number
-  cosine_similarity?: number
   lat: number
   lng: number
 }

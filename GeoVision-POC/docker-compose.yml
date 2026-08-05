@@ -20,7 +20,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MODEL_DIR: models/option2
+      MODEL_DIR: models/dinov2_supcon/final
       DEVICE: auto
       TOP_K: 5
       MAX_UPLOAD_MB: 10

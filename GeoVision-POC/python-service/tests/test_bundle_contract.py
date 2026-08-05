@@ -10,7 +10,7 @@ from app.prototype_index import PrototypeIndex
 
 
 SERVICE_DIR = Path(__file__).resolve().parents[1]
-BUNDLE_DIR = SERVICE_DIR / "models" / "option2"
+BUNDLE_DIR = SERVICE_DIR / "models" / "dinov2_supcon" / "final"
 
 
 class BundleContractTests(unittest.TestCase):
@@ -57,6 +57,7 @@ class BundleContractTests(unittest.TestCase):
             sorted(self.index.city_names),
         )
         self.assertEqual(len(metadata_cities), len(set(metadata_cities)))
+        self.assertEqual(len(metadata_cities), 39)
 
     def test_prototype_self_query_ranks_its_city_first(self) -> None:
         for city_id in range(len(self.index.city_names)):
@@ -65,6 +66,12 @@ class BundleContractTests(unittest.TestCase):
             ][0:1]
             scores = self.index.city_scores(prototype)[0]
             self.assertEqual(int(np.argmax(scores)), city_id)
+
+    def test_top_five_are_distinct_cities(self) -> None:
+        scores = self.index.city_scores(self.index.prototypes[0:1])[0]
+        top_five = np.argsort(-scores, kind="stable")[:5]
+        self.assertEqual(len(top_five), 5)
+        self.assertEqual(len(set(top_five.tolist())), 5)
 
     def test_bundle_fingerprint_matches_bundle_contents(self) -> None:
         fingerprint = self.index.fingerprint

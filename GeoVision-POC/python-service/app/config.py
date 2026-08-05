@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    model_dir: Path = Path("models/option2")
+    model_dir: Path = Path("models/dinov2_supcon/final")
     device: str = "auto"
     top_k: int = 5
     max_upload_mb: int = 10
@@ -34,6 +34,5 @@ class Settings(BaseSettings):
     @property
     def cities_path(self) -> Path:
         return self.model_dir / "cities.csv"
-
 
 settings = Settings()

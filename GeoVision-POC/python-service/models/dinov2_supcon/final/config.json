@@ -1,9 +1,10 @@
 {
   "shared": {
-    "dataset_name": "development_21",
-    "canonical_metadata_path": "OSV5M_European_Cities.xlsx",
-    "data_root_override": null,
-    "development_mode": true,
+    "dataset_name": "final_39",
+    "canonical_metadata_path": "/tf/dataset_final/metadata.xlsx",
+    "data_root_override": "/tf/dataset_final/images",
+    "expected_city_count": 39,
+    "expected_images_per_city": 1000,
     "seed": 0,
     "min_images_per_city": 150,
     "cell_km": 1.0,
@@ -17,8 +18,8 @@
     "prototypes_per_city": 4,
     "cap_support_per_city": 300,
     "qualitative_queries": 20,
-    "shared_dir": "/tf/GeoVision_Clean_v2/shared_outputs",
-    "cache_dir": "/tf/GeoVision_Clean_v2/shared_outputs/feature_cache"
+    "shared_dir": "/tf/GeoVision_Final/shared_outputs",
+    "cache_dir": "/tf/GeoVision_Final/shared_outputs/feature_cache"
   },
   "training": {
     "input_dim": 768,

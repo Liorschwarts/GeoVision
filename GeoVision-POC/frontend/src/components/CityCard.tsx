@@ -18,7 +18,7 @@ export const CityCard = ({ result, rank }: Props) => (
       </div>
       <div className="flex flex-col items-center">
         <span className="text-3xl font-bold text-teal-500">{result.score}%</span>
-        <span className="text-xs text-gray-400">similarity</span>
+        <span className="text-xs text-gray-400">visual similarity score</span>
       </div>
     </div>
 

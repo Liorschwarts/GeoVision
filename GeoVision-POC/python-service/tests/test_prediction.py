@@ -68,6 +68,7 @@ class PredictionTests(unittest.TestCase):
     def test_top_k_is_capped_by_city_count(self) -> None:
         results = predict(b"image", self.runtime, top_k=99)
         self.assertEqual(len(results), 2)
+        self.assertEqual(len({result.city for result in results}), 2)
 
     def test_display_score_is_clipped_and_not_a_probability(self) -> None:
         self.assertEqual(cosine_to_display_score(-0.5), 0.0)

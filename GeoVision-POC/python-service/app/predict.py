@@ -91,13 +91,13 @@ def load_city_metadata(path: Path) -> dict[str, CityMetadata]:
 
 def load_runtime(settings: Settings) -> GeoVisionRuntime:
     # Keep torch/transformers isolated from pure ranking and contract tests.
-    from app.model import Option2Encoder
+    from app.model import DinoV2SupConEncoder
 
     training_config = load_training_config(settings.training_config_path)
     shared_config = training_config["shared"]
     model_config = training_config["training"]
 
-    encoder = Option2Encoder(
+    encoder = DinoV2SupConEncoder(
         checkpoint_path=settings.checkpoint_path,
         backbone_name=str(shared_config["backbone_name"]),
         requested_device=settings.device,
@@ -119,6 +119,21 @@ def load_runtime(settings: Settings) -> GeoVisionRuntime:
             "Training config output dimension does not match checkpoint"
         )
 
+    expected_city_count = int(shared_config["expected_city_count"])
+    if len(index.city_names) != expected_city_count:
+        raise ValueError(
+            "Prototype city count does not match training configuration"
+        )
+    prototypes_per_city = int(shared_config["prototypes_per_city"])
+    prototype_counts = np.bincount(
+        index.prototype_city,
+        minlength=len(index.city_names),
+    )
+    if not np.all(prototype_counts == prototypes_per_city):
+        raise ValueError(
+            "Prototype counts per city do not match training configuration"
+        )
+
     indexed_cities = set(index.city_names)
     metadata_cities = set(cities)
     if indexed_cities != metadata_cities:
@@ -133,9 +148,7 @@ def load_runtime(settings: Settings) -> GeoVisionRuntime:
         encoder=encoder,
         index=index,
         cities=cities,
-        model_name=(
-            "Option 2 - frozen DINOv2 Base + 768-512-128 SupCon"
-        ),
+        model_name="Frozen DINOv2 Base + SupCon Projection Head",
     )
 
 

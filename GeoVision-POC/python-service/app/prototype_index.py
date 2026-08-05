@@ -47,6 +47,8 @@ class PrototypeIndex:
             raise ValueError("Prototype and owner counts do not match")
         if not city_names:
             raise ValueError("Prototype index contains no cities")
+        if len(city_names) != len(set(city_names)):
+            raise ValueError("Prototype index contains duplicate city names")
         if owners.min(initial=0) < 0 or owners.max(initial=-1) >= len(city_names):
             raise ValueError("Prototype index contains an invalid city owner")
         if set(owners.tolist()) != set(range(len(city_names))):

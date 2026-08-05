@@ -28,7 +28,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="GeoVision Option 2 Model Service",
+    title="GeoVision DINOv2 + SupCon Model Service",
     version="2.0.0",
     lifespan=lifespan,
 )

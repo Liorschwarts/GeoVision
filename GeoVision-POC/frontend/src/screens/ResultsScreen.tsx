@@ -19,7 +19,7 @@ export const ResultsScreen = ({ results, imageUrl, onBack }: Props) => (
       </button>
       <img src={imageUrl} alt="Uploaded" className="w-8 h-8 rounded-lg object-cover" />
       <span className="text-sm font-semibold text-gray-700">
-        {results.length} similar places found
+        {results.length} visually similar cities found
       </span>
     </div>
 
