@@ -2,13 +2,14 @@ import { useImagePicker } from '../hooks/useImagePicker'
 
 interface Props {
   error?: string
+  email: string
+  onSignOut: () => Promise<unknown>
   onFilePicked: (file: File) => void
   onViewHistory: () => void
 }
 
-export const MainScreen = ({ error, onFilePicked, onViewHistory }: Props) => {
-  const { fileInputRef, cameraInputRef, triggerFilePicker, triggerCamera, onFileChange } =
-    useImagePicker(onFilePicked)
+export const MainScreen = ({ error, email, onSignOut, onFilePicked, onViewHistory }: Props) => {
+  const { fileInputId, cameraInputId, onFileChange } = useImagePicker(onFilePicked)
 
   return (
     <div className="min-h-svh flex flex-col items-center justify-center gap-8 px-8 py-12"
@@ -20,21 +21,21 @@ export const MainScreen = ({ error, onFilePicked, onViewHistory }: Props) => {
       </div>
 
       <div className="flex flex-col gap-3 w-full max-w-xs">
-        <button
-          onClick={triggerCamera}
+        <label
+          htmlFor={cameraInputId}
           className="flex items-center justify-center gap-3 h-14 rounded-2xl bg-white text-[#00796b] font-semibold text-base shadow-md active:scale-95 transition-transform cursor-pointer"
         >
           <CameraIcon />
           Take a Photo
-        </button>
+        </label>
 
-        <button
-          onClick={triggerFilePicker}
+        <label
+          htmlFor={fileInputId}
           className="flex items-center justify-center gap-3 h-14 rounded-2xl bg-white/20 backdrop-blur-sm text-white font-semibold text-base border border-white/30 active:scale-95 transition-transform cursor-pointer"
         >
           <UploadIcon />
           Upload a File
-        </button>
+        </label>
 
         <button
           onClick={onViewHistory}
@@ -51,8 +52,28 @@ export const MainScreen = ({ error, onFilePicked, onViewHistory }: Props) => {
         </p>
       )}
 
-      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
+      <div className="text-center text-xs text-white/70">
+        <p>{email}</p>
+        <button onClick={() => void onSignOut()} className="mt-1 underline cursor-pointer">
+          Sign out
+        </button>
+      </div>
+
+      <input
+        id={fileInputId}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={onFileChange}
+      />
+      <input
+        id={cameraInputId}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={onFileChange}
+      />
     </div>
   )
 }

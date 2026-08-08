@@ -2,6 +2,8 @@ import type { HistoryEntry } from '../types'
 
 interface Props {
   entries: HistoryEntry[]
+  loading: boolean
+  error: string
   onSelect: (entry: HistoryEntry) => void
   onClear: () => void
   onBack: () => void
@@ -15,7 +17,7 @@ const formatTimestamp = (ts: number) => {
   return new Date(ts).toLocaleDateString()
 }
 
-export const HistoryScreen = ({ entries, onSelect, onClear, onBack }: Props) => (
+export const HistoryScreen = ({ entries, loading, error, onSelect, onClear, onBack }: Props) => (
   <div className="min-h-svh bg-gray-50 flex flex-col">
     <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
       <button
@@ -36,7 +38,13 @@ export const HistoryScreen = ({ entries, onSelect, onClear, onBack }: Props) => 
       )}
     </div>
 
-    {entries.length === 0 ? (
+    {loading ? (
+      <div className="flex-1 flex items-center justify-center text-sm text-gray-400">
+        Loading history...
+      </div>
+    ) : error ? (
+      <div className="p-6 text-center text-sm text-red-500">{error}</div>
+    ) : entries.length === 0 ? (
       <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-400">
         <HistoryEmptyIcon />
         <p className="text-sm">No searches yet</p>
@@ -49,11 +57,9 @@ export const HistoryScreen = ({ entries, onSelect, onClear, onBack }: Props) => 
               onClick={() => onSelect(entry)}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white transition-colors text-left cursor-pointer"
             >
-              <img
-                src={entry.imageUrl}
-                alt=""
-                className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-              />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#009e8e] text-white text-lg font-semibold">
+                {entry.results[0]?.city.charAt(0) ?? '?'}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">
                   {entry.results[0]?.city}, {entry.results[0]?.country}

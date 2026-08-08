@@ -10,9 +10,37 @@ const upload = multer({
 })
 const PORT = process.env.PORT ?? 3001
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL ?? 'http://localhost:8000'
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY')
+}
 
 app.use(cors())
 app.use(express.json())
+
+const requireAuth = async (req, res, next) => {
+  const authorization = req.get('authorization')
+  if (!authorization?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' })
+  }
+
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        authorization,
+      },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!response.ok) return res.status(401).json({ error: 'Invalid or expired session' })
+    return next()
+  } catch (err) {
+    console.error('Authentication check failed:', err)
+    return res.status(503).json({ error: 'Authentication service unavailable' })
+  }
+}
 
 app.get('/api/health', async (_req, res) => {
   try {
@@ -40,7 +68,7 @@ app.get('/api/model-info', async (_req, res) => {
   }
 })
 
-app.post('/api/analyze', upload.single('image'), async (req, res) => {
+app.post('/api/analyze', requireAuth, upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image provided' })
   }

@@ -8,8 +8,21 @@ React -> Express /api/analyze -> FastAPI /predict
       -> four prototypes per city -> Top-5 city matches
 ```
 
-No database is required. Uploaded images are processed in memory, and browser
-history remains local to the frontend.
+Supabase provides email/password authentication and stores each user's analysis
+history. Uploaded images are still processed in memory and are not persisted.
+Express validates the user's Supabase access token before forwarding an image to
+the model service.
+
+## Authentication and history
+
+1. Create a Supabase project and run `supabase/schema.sql` in its SQL editor.
+2. Copy `.env.example` to `.env` and add the project URL and anon key.
+3. For frontend development without Docker, put the same values in
+   `frontend/.env`.
+
+The table uses row-level security, so authenticated users can only read, add,
+or delete their own history. The anon key is intended for client use; never put
+the Supabase service-role key in the frontend.
 
 ## Model bundle
 
