@@ -3,6 +3,7 @@ import { analyzeImage } from '../api/analyze'
 import { Spinner } from '../components/Spinner'
 import { ProgressBar } from '../components/ProgressBar'
 import { useFakeProgress } from '../hooks/useFakeProgress'
+import { prepareImageForUpload } from '../lib/prepareImageForUpload'
 import type { CityResult } from '../types'
 
 interface Props {
@@ -22,17 +23,31 @@ export const AnalysisScreen = ({ file, onComplete, onError }: Props) => {
   }, [onComplete, onError])
 
   useEffect(() => {
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const imageUrl = reader.result as string
+    let cancelled = false
+
+    const run = async () => {
       try {
-        const results = await analyzeImage(file)
+        const prepared = await prepareImageForUpload(file)
+        if (cancelled) return
+
+        const imageUrl = URL.createObjectURL(prepared)
+        const results = await analyzeImage(prepared)
+        if (cancelled) {
+          URL.revokeObjectURL(imageUrl)
+          return
+        }
         onCompleteRef.current(results, imageUrl)
       } catch (e) {
-        onErrorRef.current(e instanceof Error ? e.message : 'Analysis failed')
+        if (!cancelled) {
+          onErrorRef.current(e instanceof Error ? e.message : 'Analysis failed')
+        }
       }
     }
-    reader.readAsDataURL(file)
+
+    void run()
+    return () => {
+      cancelled = true
+    }
   }, [file])
 
   return (

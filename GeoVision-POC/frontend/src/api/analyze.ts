@@ -13,6 +13,13 @@ export async function analyzeImage(file: File): Promise<CityResult[]> {
     headers: { Authorization: `Bearer ${session.access_token}` },
     body,
   })
+
+  const contentType = res.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    if (res.status === 413) throw new Error('Image is too large (max 10 MB)')
+    throw new Error('Analysis failed — server returned an unexpected response')
+  }
+
   const data = (await res.json()) as AnalyzeResponse & { error?: string }
   if (!res.ok) {
     throw new Error(data.error ?? res.statusText ?? 'Analysis failed')
