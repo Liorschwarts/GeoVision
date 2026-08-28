@@ -1,11 +1,19 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+import os
+import secrets
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 
 from app.config import settings
 from app.predict import GeoVisionRuntime, load_runtime, predict
 from app.schemas import HealthResponse, ModelInfo, PredictResponse
+
+API_KEY = os.environ["GEOVISION_API_KEY"]
+
+def require_key(x_api_key: str = Header(...)) -> None:
+    if not secrets.compare_digest(x_api_key, API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
 _runtime: GeoVisionRuntime | None = None
 
@@ -46,12 +54,12 @@ def health() -> HealthResponse:
     )
 
 
-@app.get("/model-info", response_model=ModelInfo)
+@app.get("/model-info", response_model=ModelInfo, dependencies=[Depends(require_key)])
 def model_info() -> ModelInfo:
     return get_runtime().model_info
 
 
-@app.post("/predict", response_model=PredictResponse)
+@app.post("/predict", response_model=PredictResponse, dependencies=[Depends(require_key)])
 async def predict_endpoint(
     image: Annotated[UploadFile, File(description="Image to analyze")],
 ) -> PredictResponse:
