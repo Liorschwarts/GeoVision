@@ -1,6 +1,16 @@
-const express = require('express')
-const cors = require('cors')
-const multer = require('multer')
+// Vercel serverless entry point.
+//
+// Same Express app as ../../backend/index.js, with two differences:
+//   1. ESM imports, because frontend/package.json declares "type": "module"
+//   2. no app.listen() - Vercel invokes the exported handler
+//
+// It lives inside the frontend project because frontend/src/api/analyze.ts
+// calls the relative URL '/api/analyze', so both must share one origin.
+// Keep this file in sync with backend/index.js, which is still used by Docker.
+
+import express from 'express'
+import cors from 'cors'
+import multer from 'multer'
 
 const app = express()
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
@@ -8,7 +18,6 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_UPLOAD_BYTES },
 })
-const PORT = process.env.PORT ?? 3001
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL ?? 'http://localhost:8000'
 const GEOVISION_API_KEY = process.env.GEOVISION_API_KEY
 const SUPABASE_URL = process.env.SUPABASE_URL
@@ -118,6 +127,4 @@ app.use((err, _req, res, next) => {
   return next(err)
 })
 
-app.listen(PORT, () => {
-  console.log(`GeoVision backend listening on port ${PORT}`)
-})
+export default app

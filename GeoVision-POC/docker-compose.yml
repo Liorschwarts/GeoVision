@@ -29,7 +29,7 @@ services:
       MODEL_DIR: models/dinov2_supcon/final
       DEVICE: auto
       TOP_K: 5
-      MAX_UPLOAD_MB: 10
+      MAX_UPLOAD_MB: 4
     volumes:
       - ./python-service/models:/app/models:ro
       - huggingface-cache:/root/.cache/huggingface

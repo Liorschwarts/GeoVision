@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     model_dir: Path = Path("models/dinov2_supcon/final")
     device: str = "auto"
     top_k: int = 5
-    max_upload_mb: int = 10
+    max_upload_mb: int = 4
     host: str = "0.0.0.0"
     port: int = 8000
 
