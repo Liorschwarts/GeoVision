@@ -10,11 +10,16 @@ const upload = multer({
 })
 const PORT = process.env.PORT ?? 3001
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL ?? 'http://localhost:8000'
+const GEOVISION_API_KEY = process.env.GEOVISION_API_KEY
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY')
+}
+
+if (!GEOVISION_API_KEY) {
+  throw new Error('Missing GEOVISION_API_KEY')
 }
 
 app.use(cors())
@@ -58,6 +63,7 @@ app.get('/api/health', async (_req, res) => {
 app.get('/api/model-info', async (_req, res) => {
   try {
     const response = await fetch(`${PYTHON_SERVICE_URL}/model-info`, {
+      headers: { 'X-API-Key': GEOVISION_API_KEY },
       signal: AbortSignal.timeout(10_000),
     })
     const data = await response.json()
@@ -86,6 +92,7 @@ app.post('/api/analyze', requireAuth, upload.single('image'), async (req, res) =
 
     const response = await fetch(`${PYTHON_SERVICE_URL}/predict`, {
       method: 'POST',
+      headers: { 'X-API-Key': GEOVISION_API_KEY },
       body: form,
       signal: AbortSignal.timeout(120_000),
     })
